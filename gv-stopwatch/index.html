@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulse Timer</title>
+    <style>
+      :root {
+        --bg-1: #08111f;
+        --bg-2: #101a31;
+        --card: rgba(14, 22, 40, 0.72);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --text: #eef4ff;
+        --muted: #a9b8d6;
+        --accent: #69d3ff;
+        --accent-2: #8b7cff;
+        --success: #7bffbe;
+        --danger: #ff7b9c;
+        --warning: #ffc66d;
+        --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(105, 211, 255, 0.16),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(139, 124, 255, 0.18),
+            transparent 28%
+          ),
+          linear-gradient(160deg, var(--bg-1), var(--bg-2));
+        color: var(--text);
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .app {
+        width: min(100%, 920px);
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        padding: 28px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+
+      .brand {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .brand__title {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .brand__title span {
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .brand__subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .shortcuts {
+        text-align: right;
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .mode-switch {
+        display: inline-grid;
+        grid-template-columns: repeat(2, 1fr);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 6px;
+        gap: 6px;
+        margin-bottom: 28px;
+        width: 100%;
+        max-width: 340px;
+      }
+
+      .mode-btn {
+        border: 0;
+        border-radius: 12px;
+        padding: 12px 16px;
+        background: transparent;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: 0.25s ease;
+      }
+
+      .mode-btn:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .mode-btn.active {
+        color: var(--text);
+        background: linear-gradient(
+          135deg,
+          rgba(105, 211, 255, 0.18),
+          rgba(139, 124, 255, 0.18)
+        );
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .timer-shell {
+        display: grid;
+        gap: 22px;
+      }
+
+      .timer-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        padding: 28px;
+        background:
+          linear-gradient(
+            145deg,
+            rgba(255, 255, 255, 0.05),
+            rgba(255, 255, 255, 0.02)
+          ),
+          rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .timer-card::before {
+        content: "";
+        position: absolute;
+        inset: auto auto -40px -40px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(
+          circle,
+          rgba(105, 211, 255, 0.18),
+          transparent 68%
+        );
+        pointer-events: none;
+      }
+
+      .timer-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .timer-label {
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+
+      .timer-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--warning);
+        box-shadow: 0 0 14px rgba(255, 198, 109, 0.5);
+      }
+
+      .timer-status.running .status-dot {
+        background: var(--success);
+        box-shadow: 0 0 14px rgba(123, 255, 190, 0.5);
+      }
+
+      .timer-status.finished .status-dot {
+        background: var(--danger);
+        box-shadow: 0 0 14px rgba(255, 123, 156, 0.5);
+      }
+
+      .display {
+        font-size: clamp(2.8rem, 9vw, 6rem);
+        font-weight: 800;
+        letter-spacing: -0.06em;
+        line-height: 1;
+        margin: 0;
+        font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 22px rgba(105, 211, 255, 0.14);
+      }
+
+      .display small {
+        font-size: 0.32em;
+        color: var(--muted);
+      }
+
+      .progress-track {
+        width: 100%;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        overflow: hidden;
+        margin-top: 22px;
+      }
+
+      .progress-bar {
+        width: 0%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        transition: width 0.12s linear;
+      }
+
+      .message {
+        min-height: 24px;
+        margin-top: 14px;
+        font-weight: 700;
+        color: var(--danger);
+      }
+
+      .controls-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.9fr;
+        gap: 20px;
+      }
+
+      .actions,
+      .countdown-settings,
+      .laps-panel {
+        border-radius: 20px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .section-title {
+        margin: 0 0 16px;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 14px;
+        padding: 13px 18px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.25s ease;
+      }
+
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        color: #06101d;
+        box-shadow: 0 10px 24px rgba(105, 211, 255, 0.18);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.07);
+        color: var(--text);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.11);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--muted);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .btn-ghost:hover:not(:disabled) {
+        color: var(--text);
+        border-color: rgba(255, 255, 255, 0.14);
+      }
+
+      .countdown-settings[hidden],
+      .laps-panel[hidden],
+      .progress-track[hidden],
+      .message[hidden] {
+        display: none;
+      }
+
+      .input-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .field label {
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      .field input {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text);
+        padding: 14px 14px;
+        outline: none;
+        font-size: 1rem;
+      }
+
+      .field input:focus {
+        border-color: rgba(105, 211, 255, 0.5);
+        box-shadow: 0 0 0 4px rgba(105, 211, 255, 0.1);
+      }
+
+      .presets {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .preset-btn {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        border-radius: 12px;
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: 0.2s ease;
+      }
+
+      .preset-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .laps-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 10px;
+        max-height: 250px;
+        overflow: auto;
+      }
+
+      .laps-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .laps-list li strong {
+        color: var(--accent);
+      }
+
+      .empty-state {
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .footer-note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 760px) {
+        .panel {
+          padding: 18px;
+        }
+
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .shortcuts {
+          text-align: left;
+        }
+
+        .controls-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .timer-card {
+          padding: 22px 18px;
+        }
+
+        .actions,
+        .countdown-settings,
+        .laps-panel {
+          padding: 16px;
+        }
+
+        .btn-row {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <div class="topbar">
+          <div class="brand">
+            <h1 class="brand__title">Pulse <span>Timer</span></h1>
+            <p class="brand__subtitle">
+              A stylish stopwatch and countdown in one place.
+            </p>
+          </div>
+
+          <div class="shortcuts" aria-label="Keyboard shortcuts">
+            <div><strong>Space</strong> → Start / Pause</div>
+            <div><strong>R</strong> → Reset</div>
+          </div>
+        </div>
+
+        <div class="mode-switch" role="tablist" aria-label="Timer modes">
+          <button
+            id="stopwatchModeBtn"
+            class="mode-btn active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+          >
+            Stopwatch
+          </button>
+          <button
+            id="countdownModeBtn"
+            class="mode-btn"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Countdown
+          </button>
+        </div>
+
+        <div class="timer-shell">
+          <section class="timer-card" aria-live="polite">
+            <div class="timer-meta">
+              <span id="timerLabel" class="timer-label">Stopwatch mode</span>
+              <span id="timerStatus" class="timer-status">
+                <span class="status-dot"></span>
+                Idle
+              </span>
+            </div>
+
+            <h2 id="display" class="display">00:00:00<small>.00</small></h2>
+
+            <div id="progressTrack" class="progress-track" hidden>
+              <div id="progressBar" class="progress-bar"></div>
+            </div>
+
+            <div id="message" class="message" hidden></div>
+          </section>
+
+          <div class="controls-grid">
+            <section class="actions">
+              <h3 class="section-title">Controls</h3>
+              <div class="btn-row">
+                <button
+                  id="startPauseBtn"
+                  class="btn btn-primary"
+                  type="button"
+                >
+                  Start
+                </button>
+                <button id="resetBtn" class="btn btn-secondary" type="button">
+                  Reset
+                </button>
+                <button id="lapBtn" class="btn btn-ghost" type="button">
+                  Lap
+                </button>
+              </div>
+              <p class="footer-note">
+                Stopwatch supports lap tracking. Countdown supports presets and
+                manual input.
+              </p>
+            </section>
+
+            <section id="countdownSettings" class="countdown-settings" hidden>
+              <h3 class="section-title">Countdown Setup</h3>
+
+              <div class="input-grid">
+                <div class="field">
+                  <label for="minutesInput">Minutes</label>
+                  <input
+                    id="minutesInput"
+                    type="number"
+                    min="0"
+                    max="999"
+                    value="1"
+                  />
+                </div>
+
+                <div class="field">
+                  <label for="secondsInput">Seconds</label>
+                  <input
+                    id="secondsInput"
+                    type="number"
+                    min="0"
+                    max="59"
+                    value="0"
+                  />
+                </div>
+              </div>
+
+              <div class="presets" aria-label="Countdown presets">
+                <button class="preset-btn" type="button" data-minutes="1">
+                  1 min
+                </button>
+                <button class="preset-btn" type="button" data-minutes="5">
+                  5 min
+                </button>
+                <button class="preset-btn" type="button" data-minutes="10">
+                  10 min
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <section id="lapsPanel" class="laps-panel">
+            <h3 class="section-title">Laps</h3>
+            <p id="lapsEmpty" class="empty-state">No laps recorded yet.</p>
+            <ol id="lapsList" class="laps-list" aria-live="polite"></ol>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
